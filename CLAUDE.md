@@ -1,82 +1,97 @@
-# AGENTS.md — web.mallsize (Nuxt 4)
+# CLAUDE.md — web.mallsize (Nuxt 4)
 
-Stack: **Nuxt 4, Vue 3, TypeScript (strict), Pinia, Tailwind v4.**
-The SPA for mallsize, consuming `web.mallsize` at `/api/v1`.
+Stack: **Nuxt 4 · Vue 3 · TypeScript (strict) · Nuxt UI 4 · Tailwind CSS v4 · Pinia · nuxt-auth-sanctum 3 · zod 4 · Vitest**.
 
-Audience: children aged roughly 4–8, their teachers, and administrators. Most
-rules below exist because of that first group.
+The website, enrollment wizard, student portal and staff/admin back office for
+**MallSize Training Center**, consuming the Laravel API in `../api.mallsize` at `/api/v1`
+with Sanctum **cookie** (SPA) authentication.
 
-## Core rule: the browser never knows the answer
+Design source of truth: `../ai-sources/artboards/*.html`
+(1 public website · 2 registration & enrollment · 3 student login · 4 student portal · 5 staff/admin console).
+Match layouts, copy and tokens from those files when building or changing screens.
 
-An activity instance arrives from the server with no answer key. To find out
-whether an interaction was right, the client asks:
+## Map
 
 ```
-POST /api/v1/game/attempts/{attempt}/check   → { is_correct, correct_count, ... }
+app/
+  app.vue / app.config.ts     UApp + toasts; Nuxt UI theme (primary=brand, secondary=accent) and `site` details
+  assets/css/main.css         design tokens (@theme) + shared utilities: display, eyebrow, card, pill, tbl, chip, chip-on, note
+  layouts/                    default (public header/footer) · auth (red split panel) · register · portal (white sidebar) · admin (dark sidebar)
+  pages/                      public: index, courses, orientation, about, news/, gallery, contact
+                              auth: login, staff/login, forgot-password, reset-password
+                              enrollment: register/index (wizard), register/success, payments/return (gateway return)
+                              portal/: index (dashboard), courses, payments, profile          → roles: ['student']
+                              admin/: index, payments, students, news, orientations          → roles: ['staff', 'admin']
+                              admin/: courses, locations                                     → roles: ['admin']
+  components/{area}/Name.vue  auto-imported as <AreaName>: brand/, site/, auth/, enroll/, payment/, portal/, admin/, ui/
+  composables/                useApi, useApiError, useCheckout, useLookups, useCurrentUser, useHydrated
+  stores/                     registration (wizard), portal (dashboard + payments), admin (overview/badges)
+  middleware/role.ts          enforces definePageMeta({ roles }) after `sanctum:auth`
+  types/index.ts              mirrors API resources one for one
+  utils/                      money (peso, toCentavos), dates, status (pillClass, slotTone)
 ```
 
-That request is also what records the interaction server-side, so the score is
-derived from the server's own log, not from anything the page submits.
+## Rules
 
-- **Never** add client-side "is this correct" logic.
-- **Never** infer the answer from configuration, ordering or ids.
-- `InteractionLogger` records what the learner did — no score, no verdict.
+- **API access only through `useApi()`** (wraps `useSanctumClient`, sends cookies + XSRF header,
+  prefixes `/api/v1`, unwraps `{ data }`). Never call `$fetch` against the API directly.
+  The single exception is `useCheckout` → PayMongo card tokenization (browser → PayMongo with the
+  **public** key, so card numbers never reach our API).
+- **Auth**: `useSanctumAuth()` for login/logout/identity, `useCurrentUser()` for role helpers and the
+  user's home (`/portal` or `/admin`). Protect pages with
+  `definePageMeta({ layout, middleware: ['sanctum:auth', 'role'], roles: [...] })`.
+  `redirect.onLogin` is `false`: the login form routes by role itself.
+- **Money is integer centavos** in all API payloads and types. Display with `peso()`, convert typed
+  pesos with `toCentavos()`. Totals in the UI are **previews**: the API recomputes amounts and
+  enforces minimums. Send payment intents (`down_payment` / `full` / `custom`), never trusted totals.
+- **Lookups, not hard-coded option lists**: statuses, categories, location types, sexes, education
+  levels, etc. come from `useLookups()` (`GET /lookups`). Use `items(table)` for `USelect`,
+  `label(table, code)` for display. Resources already include `*_label` fields; prefer those.
+- **Forms**: `UForm` + zod schema + `UFormField`; map 422s with `useApiError().report()` →
+  `form.setErrors(...)`. Disable submit until `useHydrated()` is true (an early click must not fall
+  through to a native form post).
+- **Errors**: `friendlyError()` turns any failure into a readable sentence; toasts via `useToast()`.
+- **Accessibility**: touch targets ≥ 44px (buttons default to `size: 'lg'`), visible yellow focus ring,
+  status never by colour alone (pills always show text; slot bars have labels), radio/checkbox groups
+  have `role`/`aria-*` like the artboards, respect `prefers-reduced-motion`.
+- **Styling**: Tailwind utilities + design tokens (`brand-*` red #A3161A = 600, `accent-*` yellow #F4B63A = 500,
+  `ink-*`, `surface`, `line`, `ok`/`info`/`warn`/`bad`). Headings that are uppercase in the design use
+  `display` (Anton). Add new shared classes as `@utility` in `main.css` (the lint rule rejects unknown classes).
+- **Rendering**: public pages are SSR (`useAsyncData` + `useApi`); `/portal/**`, `/admin/**`,
+  `/register/**`, `/payments/**` are client-only (`routeRules ssr: false`).
+- **Types**: when an API resource changes, update `app/types/index.ts` in the same change.
 
-## UI rules
+## Payment flow (UI)
 
-- **Touch targets**: every interactive control carries the `tap-target` utility
-  (56×56px minimum). No exceptions on learner-facing screens.
-- **Never audio-only**: anything spoken via `useAudio().speak()` must also be
-  rendered on screen. Speech is an aid, not the channel.
-- **Never colour-only**: success and failure carry an icon, motion and words as
-  well as colour.
-- **Supportive language**: learner-facing copy lives in `app/game/copy.ts`.
-  No "wrong", "failed" or "game over" — `tests/copy.spec.ts` enforces it.
-- **Forms gate on hydration**: use `useHydrated()` and disable submit until it is
-  true. A submit during the hydration window falls through to a native form
-  post, which on a sign-in form puts the password or PIN in the URL.
+`PaymentMethods` (wallet tiles + card form) emits `pay(method, card?)` →
+`useCheckout().pay(items, method, card)`:
+- `next_action.type === 'redirect'` → store the payment id in sessionStorage and leave the page;
+  PayMongo returns to `/payments/return`, which polls `GET /student/payments/{id}`.
+- `next_action.type === 'qr'` → show the QR (`PaymentProcessing`) and poll.
+- Fake driver (local): settles instantly; card `4000 0000 0000 0002` simulates a decline.
 
-## Conventions
+## Environment
 
-- **Components**: `components/{area}/{Name}.vue`, auto-imported as `{Area}{Name}`
-  (`components/ui/AppButton.vue` → `<UiAppButton>`). 3D components are
-  `.client.vue` — WebGL cannot be created during SSR.
-- **State**: Pinia stores in `app/stores/`. `useGameStore` owns the level
-  lifecycle (`idle → loading → intro → playing → result`).
-- **API access**: only through `useApi()`, which sends credentials and the CSRF
-  token. Never call `$fetch` against the API directly.
-- **Errors**: `friendlyError()` turns any failure into a sentence a child can
-  read; technical detail goes to the console in dev only.
-- **Types**: `app/types/index.ts` mirrors the API resources one for one.
-- **No WebGL is not an error**: `useWebGLSupport()` selects `GameFallback2D`,
-  which plays the same instance through DOM buttons and is graded identically.
+`.env` (see `.env.example`): `NUXT_PUBLIC_SANCTUM_BASE_URL` **and** `NUXT_SANCTUM_BASE_URL`
+(the module reads a private copy during SSR), `NUXT_PUBLIC_API_BASE`. This app's `host:port` must
+be listed in the API's `SANCTUM_STATEFUL_DOMAINS` and `CORS_ALLOWED_ORIGINS`.
+
+Seeded logins (password `password`): `admin@mallsize.ph`, `staff@mallsize.ph`, `juan.delacruz@email.com`.
 
 ## Verify before reporting done
 
 ```bash
-pnpm typecheck      # nuxt typecheck (strict)
-pnpm test           # vitest unit tests
-pnpm build          # production build
-pnpm test:e2e       # playwright, needs the API seeded and running
+pnpm lint          # eslint (Nuxt + better-tailwindcss correctness)
+pnpm typecheck     # nuxt typecheck (strict)
+pnpm test          # vitest: test/unit (node) + test/nuxt (nuxt env, happy-dom)
+pnpm build         # production build
 ```
 
-### Run the E2E suite against the build, not the dev server
-
-`nuxt dev` compiles routes on demand and re-optimises dependencies mid-run. A
-navigation that trips either can leave the page unhydrated, and because every
-sign-in button stays disabled until hydration, the failure surfaces as a
-meaningless 60-second timeout rather than as anything about the app. Serve the
-build instead:
+Smoke-test the build, not the dev server:
 
 ```bash
-pnpm build
-PORT=3100 node .output/server/index.mjs &
-E2E_NO_SERVER=1 E2E_BASE_URL=http://localhost:3100 pnpm exec playwright test
+PORT=3100 NUXT_PUBLIC_SANCTUM_BASE_URL=http://localhost:8080 NUXT_SANCTUM_BASE_URL=http://localhost:8080 node .output/server/index.mjs
 ```
 
-A dedicated port also keeps the run clear of any dev server already holding
-`:3000` - `playwright.config.ts` sets `reuseExistingServer: true`, so it would
-otherwise silently bind to whatever is there, however stale. Local CORS accepts
-any `localhost` port, so no API change is needed.
-
-A timeout under this setup is a real defect. Investigate it; do not retry it.
+`nitro.noExternals: true` is deliberate: nitropack 2.13 + rolldown otherwise emits broken
+pnpm-store import paths (`/consola@…/node_modules/…`) and every SSR request 500s.

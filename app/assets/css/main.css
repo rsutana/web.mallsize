@@ -1,18 +1,128 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+/*
+ * MallSize design tokens (ai-sources/artboards). Red #A3161A is brand-600,
+ * yellow #F4B63A is accent-500.
+ */
 @theme static {
-  --font-sans: 'Public Sans', sans-serif;
+  --font-sans: 'Poppins', system-ui, sans-serif;
+  --font-display: 'Anton', Impact, sans-serif;
 
-  --color-green-50: #EFFDF5;
-  --color-green-100: #D9FBE8;
-  --color-green-200: #B3F5D1;
-  --color-green-300: #75EDAE;
-  --color-green-400: #00DC82;
-  --color-green-500: #00C16A;
-  --color-green-600: #00A155;
-  --color-green-700: #007F45;
-  --color-green-800: #016538;
-  --color-green-900: #0A5331;
-  --color-green-950: #052E16;
+  --color-brand-50: #FDF1F1;
+  --color-brand-100: #FBE3E3;
+  --color-brand-200: #F6C6C7;
+  --color-brand-300: #EE9A9C;
+  --color-brand-400: #DC5A5D;
+  --color-brand-500: #BE2529;
+  --color-brand-600: #A3161A;
+  --color-brand-700: #7A1013;
+  --color-brand-800: #640E10;
+  --color-brand-900: #530E10;
+  --color-brand-950: #2E0506;
+
+  --color-accent-50: #FFFBF0;
+  --color-accent-100: #FFF4DA;
+  --color-accent-200: #FCE6B0;
+  --color-accent-300: #F9D37A;
+  --color-accent-400: #F7C55A;
+  --color-accent-500: #F4B63A;
+  --color-accent-600: #E9A41E;
+  --color-accent-700: #C2830F;
+  --color-accent-800: #8A5A00;
+  --color-accent-900: #6B4600;
+  --color-accent-950: #3D2700;
+
+  --color-ink-900: #1C1414;
+  --color-ink-800: #2A2020;
+  --color-ink-700: #3A2E2E;
+  --color-ink-600: #5E5252;
+  --color-ink-500: #6B5D5D;
+  --color-ink-400: #8A6F6F;
+  --color-ink-300: #BFAFAD;
+
+  --color-surface: #FBF8F5;
+  --color-surface-portal: #F7F3F0;
+  --color-surface-admin: #F4F1EF;
+  --color-line: #EDE3E0;
+  --color-line-strong: #DCCFCB;
+  --color-tint: #F6E9E6;
+  --color-dark: #1C1414;
+  --color-dark-2: #2E2222;
+
+  --color-ok: #1F6B3A;
+  --color-ok-bg: #E3F3E8;
+  --color-info: #264A7A;
+  --color-info-bg: #E8EEF8;
+  --color-warn: #8A5A00;
+  --color-warn-bar: #D9940F;
+  --color-note: #FFF4DA;
+  --color-note-line: #F0C565;
+  --color-bad: #8E1014;
+  --color-bad-bg: #FDE7E7;
+}
+
+:root {
+  --ui-primary: var(--ui-color-primary-600);
+  --ui-text: #1C1414;
+  --ui-text-muted: #5E5252;
+  --ui-text-dimmed: #6B5D5D;
+  --ui-border: #EDE3E0;
+  --ui-border-accented: #DCCFCB;
+  --ui-bg: #FBF8F5;
+  --ui-radius: 0.625rem;
+}
+
+body {
+  @apply bg-surface text-ink-900 font-sans antialiased;
+}
+
+a {
+  @apply text-brand-600 hover:text-brand-700;
+}
+
+:focus-visible {
+  outline: 3px solid #F4B63A;
+  outline-offset: 2px;
+}
+
+/* Design primitives shared across pages (Tailwind v4 custom utilities). */
+@utility display {
+  @apply font-display uppercase font-normal tracking-[.5px];
+}
+
+@utility eyebrow {
+  @apply m-0 text-sm font-semibold uppercase tracking-[1px] text-brand-600;
+}
+
+@utility card {
+  @apply rounded-2xl border border-line bg-white;
+}
+
+@utility pill {
+  @apply inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold;
+}
+
+@utility tbl {
+  @apply w-full border-collapse text-sm;
+
+  & th {
+    @apply whitespace-nowrap border-b border-line px-3.5 py-2.5 text-left text-xs font-semibold uppercase tracking-[.5px] text-ink-600;
+  }
+
+  & td {
+    @apply border-b border-[#F3EEEC] px-3.5 py-3 align-middle;
+  }
+}
+
+@utility chip {
+  @apply inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full border-[1.5px] border-line-strong bg-white px-3.5 text-[13px] font-medium text-ink-700 hover:border-[#C9A9A4];
+}
+
+@utility chip-on {
+  @apply border-brand-600 bg-brand-50 font-semibold text-brand-700;
+}
+
+@utility note {
+  @apply rounded-xl border border-note-line bg-note px-4 py-3 text-sm leading-relaxed;
 }
