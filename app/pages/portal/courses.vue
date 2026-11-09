@@ -82,31 +82,36 @@ function batchLeft(sets: { slots_left: number }[] | undefined) {
         </dl>
         <section
           :aria-label="`Sets in ${e.batch?.name}`"
-          class="border-t border-[#F0E6E3] pt-3"
+          class="@container border-t border-[#F0E6E3] pt-3"
         >
           <div class="mb-2 flex flex-wrap justify-between gap-2">
             <strong class="text-[13px]">Sets in {{ e.batch?.name.split(' — ')[0] }}</strong>
             <span class="text-xs text-ink-600">{{ batchLeft(e.batch?.sets) === 0 ? 'Batch fully booked' : `${batchLeft(e.batch?.sets)} slots left in this batch` }}</span>
           </div>
-          <ul class="m-0 flex list-none flex-col gap-2 p-0">
+          <!-- Two columns once the card is wide enough (container query), one on narrow cards. -->
+          <ul class="m-0 grid list-none grid-cols-1 gap-2.5 p-0 @xl:grid-cols-2">
             <li
               v-for="s in e.batch?.sets"
               :key="s.id"
-              class="rounded-[10px] border-[1.5px] px-3 py-2.5"
-              :class="s.id === e.set?.id ? 'border-brand-600 bg-[#FFF8F7]' : 'border-line bg-white'"
+              class="rounded-[10px] border p-3 text-[13px]"
+              :class="s.id === e.set?.id ? 'border-brand-600 bg-[#FFF8F7]' : 'border-[#E7DDDA] bg-white'"
             >
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <span class="text-[13px]"><strong>{{ s.name }}</strong><span
-                  v-if="s.id === e.set?.id"
-                  class="ml-1.5 rounded-full bg-brand-600 px-2 py-px text-[11px] font-bold text-white"
-                >Your set</span></span>
+              <div class="flex items-start justify-between gap-2.5">
+                <span>
+                  <strong>{{ s.name }}</strong>
+                  <span
+                    v-if="s.id === e.set?.id"
+                    class="ml-1.5 rounded-full bg-brand-600 px-2 py-px text-[11px] font-bold text-white"
+                  >Your set</span>
+                  · {{ shortDate(s.start_date) }} – {{ shortDate(s.end_date) }} · {{ s.training_days }} days
+                </span>
                 <span
-                  class="text-xs font-semibold whitespace-nowrap"
+                  class="font-semibold whitespace-nowrap"
                   :class="slotTone(s.slots_left).text"
-                >{{ s.slots_left === 0 ? 'Full' : `${s.slots_left} of ${s.slots} slots left` }}</span>
+                >{{ s.slots_left === 0 ? 'Full' : `${s.slots_left} left` }}</span>
               </div>
               <div class="mt-0.5 text-xs text-ink-600">
-                Approx. {{ shortDate(s.start_date) }} – {{ longDate(s.end_date) }} · {{ s.time_label }}
+                {{ s.time_label }}
               </div>
               <div class="mt-1.5 flex items-center gap-2">
                 <UiSlotBar
@@ -114,7 +119,7 @@ function batchLeft(sets: { slots_left: number }[] | undefined) {
                   :taken="s.slots_taken"
                   :slots="s.slots"
                 />
-                <span class="text-[11px] whitespace-nowrap text-ink-600">{{ s.slots_taken }}/{{ s.slots }} enrolled</span>
+                <span class="text-xs whitespace-nowrap text-ink-600">{{ s.slots_taken }}/{{ s.slots }} enrolled</span>
               </div>
             </li>
           </ul>

@@ -564,7 +564,7 @@ const reviewRows = computed(() => ({
               role="note"
               class="note mb-4.5"
             >
-              <ul class="m-0 pl-4.5">
+              <ul class="m-0">
                 <li>Must have a down payment of <strong>{{ peso(dpTotal) }}</strong> and the remaining <strong>{{ peso(feeTotal - dpTotal) }}</strong> will be payable upon starting.</li>
               </ul>
               <div class="mt-1.5 text-xs text-ink-600">
