@@ -243,6 +243,40 @@ export interface StudentDashboard {
   enrollments: Enrollment[]
 }
 
+/** Seat usage; pending_count = unexpired pending-payment holds. */
+export interface SeatTotals {
+  slots: number
+  enrolled_count: number
+  pending_count: number
+  slots_taken: number
+  slots_left: number
+}
+
+export interface SetCapacity extends SeatTotals {
+  id: number
+  name: string
+  start_date: string
+  end_date: string
+  training_days: number
+  time_label: string
+}
+
+export interface BatchCapacity extends SeatTotals {
+  id: number
+  name: string
+  status: string
+  status_label: string
+  sets: SetCapacity[]
+}
+
+export interface CourseCapacity extends SeatTotals {
+  id: number
+  name: string
+  status: string
+  status_label: string
+  batches: BatchCapacity[]
+}
+
 export interface AdminOverview {
   payments_to_verify: number
   enrolled_count: number
@@ -250,6 +284,7 @@ export interface AdminOverview {
   outstanding: number
   due_soon: Enrollment[]
   notifications: NotificationLog[]
+  courses: CourseCapacity[]
 }
 
 export interface Registration {

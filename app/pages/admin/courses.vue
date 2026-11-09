@@ -294,41 +294,11 @@ function sum(c: Course, k: 'slots' | 'slots_taken') {
                   class="bg-surface px-3.5 pt-3 pb-4"
                 >
                   <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-2.5">
-                    <div
+                    <AdminBatchCard
                       v-for="b in c.batches"
                       :key="b.id"
-                      class="rounded-[10px] border border-[#E7DDDA] bg-white p-3"
-                    >
-                      <div class="flex items-center justify-between gap-2">
-                        <strong class="text-sm">{{ b.name }}</strong>
-                        <UiStatusPill
-                          :code="b.status"
-                          :label="b.status_label"
-                        />
-                      </div>
-                      <ul class="mt-2.5 flex list-none flex-col gap-2.5 p-0 text-[13px]">
-                        <li
-                          v-for="s in b.sets"
-                          :key="s.id"
-                        >
-                          <div class="flex justify-between gap-2.5">
-                            <span><strong>{{ s.name }}</strong> · {{ shortDate(s.start_date) }} – {{ shortDate(s.end_date) }} · {{ s.training_days }} days</span>
-                            <span
-                              class="font-semibold whitespace-nowrap"
-                              :class="slotTone(s.slots_left).text"
-                            >{{ s.slots_left === 0 ? 'Full' : `${s.slots_left} left` }}</span>
-                          </div>
-                          <div class="mt-1 flex items-center gap-2">
-                            <UiSlotBar
-                              class="flex-1"
-                              :taken="s.slots_taken"
-                              :slots="s.slots"
-                            />
-                            <span class="text-xs whitespace-nowrap text-ink-600">{{ s.slots_taken }}/{{ s.slots }} enrolled</span>
-                          </div>
-                        </li>
-                      </ul>
-                    </div>
+                      :batch="b"
+                    />
                   </div>
                 </td>
               </tr>

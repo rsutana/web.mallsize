@@ -13,6 +13,7 @@ onMounted(() => {
 })
 
 const o = computed(() => admin.overview)
+const openCourses = computed(() => o.value?.courses.filter(c => c.status === 'open').length ?? 0)
 
 async function remindAll() {
   reminding.value = true
@@ -42,6 +43,11 @@ async function remindAll() {
         <div class="text-[28px] font-bold text-brand-600">{{ o?.payments_to_verify ?? '—' }}</div>
       </NuxtLink>
       <AdminStatCard
+        label="Courses"
+        :value="o?.courses.length ?? '—'"
+        :sub="o ? `${openCourses} open for enrollment` : undefined"
+      />
+      <AdminStatCard
         label="Enrolled (course slots)"
         :value="o?.enrolled_count ?? '—'"
       />
@@ -54,6 +60,57 @@ async function remindAll() {
         :value="peso(o?.outstanding)"
       />
     </div>
+    <section class="card mb-4.5 rounded-[14px]">
+      <h2 class="m-0 px-4 pt-3.5 text-base font-semibold">
+        Courses, batches &amp; slots
+      </h2>
+      <p class="m-0 px-4 pb-3 text-[13px] text-ink-600">
+        Enrolled students and remaining slots per batch and set. Registrations awaiting payment hold a slot for 30 minutes.
+      </p>
+      <div class="flex flex-col gap-3 border-t border-line bg-surface px-3.5 pt-3 pb-4">
+        <div
+          v-for="c in o?.courses"
+          :key="c.id"
+        >
+          <div class="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <div class="flex items-center gap-2">
+              <strong class="text-[15px]">{{ c.name }}</strong>
+              <UiStatusPill
+                :code="c.status"
+                :label="c.status_label"
+              />
+            </div>
+            <div class="text-[13px] text-ink-600">
+              <strong class="text-ink-900">{{ c.enrolled_count }}</strong> enrolled
+              <template v-if="c.pending_count">
+                · {{ c.pending_count }} awaiting payment
+              </template>
+              · <strong :class="slotTone(c.slots_left).text">{{ c.slots_left }}</strong> of {{ c.slots }} slots left
+              · {{ c.batches.length }} {{ c.batches.length === 1 ? 'batch' : 'batches' }}
+            </div>
+          </div>
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-2.5">
+            <AdminBatchCard
+              v-for="b in c.batches"
+              :key="b.id"
+              :batch="b"
+            />
+          </div>
+          <p
+            v-if="!c.batches.length"
+            class="m-0 text-[13px] text-ink-600"
+          >
+            No batches yet.
+          </p>
+        </div>
+      </div>
+      <p
+        v-if="o && !o.courses.length"
+        class="m-0 px-4 py-4 text-sm text-ink-600"
+      >
+        No courses yet.
+      </p>
+    </section>
     <div class="flex flex-wrap items-start gap-4">
       <section class="card min-w-0 flex-[999_1_420px] rounded-[14px]">
         <h2 class="m-0 px-4 py-3.5 text-base font-semibold">
