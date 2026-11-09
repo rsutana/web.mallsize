@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { NewsPost } from '~/types'
+import type { Paginated, NewsPost } from '~/types'
 
 definePageMeta({ layout: 'admin', middleware: ['sanctum:auth', 'role'], roles: ['staff', 'admin'] })
 useSeoMeta({ title: 'News' })
@@ -9,7 +9,10 @@ const lookups = useLookups()
 const toast = useToast()
 const { report, validationErrors } = useApiError()
 
+const PER_PAGE = 15
 const posts = ref<NewsPost[]>([])
+const page = ref(1)
+const meta = ref<Paginated<NewsPost>['meta'] | null>(null)
 const confirmId = ref<number | null>(null)
 const open = ref(false)
 const saving = ref(false)
@@ -34,11 +37,21 @@ const blank = (): Draft => ({ title: '', category: 'announcement', summary: '', 
 const draft = reactive<Draft>(blank())
 
 async function load() {
-  posts.value = await api.get<NewsPost[]>('/admin/news-posts').catch((e) => {
+  try {
+    const res = await api.raw<Paginated<NewsPost>>('/admin/news-posts', { page: page.value, per_page: PER_PAGE })
+    // Deleting the last row of the last page leaves it empty: step back a page.
+    if (!res.data.length && page.value > 1) {
+      page.value = res.meta.last_page
+      return
+    }
+    posts.value = res.data
+    meta.value = res.meta
+  } catch (e) {
     report(e, 'Couldn’t load news')
-    return []
-  })
+  }
 }
+
+watch(page, load)
 
 onMounted(() => {
   lookups.load()
@@ -178,6 +191,11 @@ async function remove(p: NewsPost) {
       >
         No news posts yet.
       </p>
+      <AdminPaginationFooter
+        v-if="meta"
+        v-model:page="page"
+        :meta="meta"
+      />
     </section>
 
     <USlideover

@@ -9,6 +9,16 @@ export default defineNuxtConfig({
     'nuxt-auth-sanctum'
   ],
 
+  // Production only: nitropack 2.13 + rolldown traces pnpm-store dependencies
+  // to broken absolute paths ("/consola@3.4.2/…"), so bundle them into the
+  // server. Not in dev — there it tries to bundle dev-only packages (my-bad →
+  // tiny-open) that pnpm never installs, and `nuxt dev` fails to start.
+  $production: {
+    nitro: {
+      noExternals: true
+    }
+  },
+
   devtools: {
     enabled: true
   },
@@ -47,12 +57,6 @@ export default defineNuxtConfig({
   },
 
   compatibilityDate: '2026-06-30',
-
-  // nitropack 2.13 + rolldown traces pnpm-store dependencies to broken
-  // absolute paths ("/consola@3.4.2/…"); bundle them into the server instead.
-  nitro: {
-    noExternals: true
-  },
 
   eslint: {
     config: {

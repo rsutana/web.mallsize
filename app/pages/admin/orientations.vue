@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Course, Orientation } from '~/types'
+import type { Paginated, Course, Orientation } from '~/types'
 
 definePageMeta({ layout: 'admin', middleware: ['sanctum:auth', 'role'], roles: ['staff', 'admin'] })
 useSeoMeta({ title: 'Orientations' })
@@ -9,7 +9,10 @@ const lookups = useLookups()
 const toast = useToast()
 const { report, validationErrors } = useApiError()
 
+const PER_PAGE = 15
 const rows = ref<Orientation[]>([])
+const page = ref(1)
+const meta = ref<Paginated<Orientation>['meta'] | null>(null)
 const courses = ref<Course[]>([])
 const confirmId = ref<number | null>(null)
 const open = ref(false)
@@ -50,11 +53,21 @@ const blank = (): Draft => ({ title: '', course_id: 'all', details: '', date: ''
 const draft = reactive<Draft>(blank())
 
 async function load() {
-  rows.value = await api.get<Orientation[]>('/admin/orientations').catch((e) => {
+  try {
+    const res = await api.raw<Paginated<Orientation>>('/admin/orientations', { page: page.value, per_page: PER_PAGE })
+    // Deleting the last row of the last page leaves it empty: step back a page.
+    if (!res.data.length && page.value > 1) {
+      page.value = res.meta.last_page
+      return
+    }
+    rows.value = res.data
+    meta.value = res.meta
+  } catch (e) {
     report(e, 'Couldn’t load orientations')
-    return []
-  })
+  }
 }
+
+watch(page, load)
 
 onMounted(async () => {
   lookups.load()
@@ -223,6 +236,11 @@ async function remove(o: Orientation) {
       >
         No orientations scheduled.
       </p>
+      <AdminPaginationFooter
+        v-if="meta"
+        v-model:page="page"
+        :meta="meta"
+      />
     </section>
 
     <USlideover

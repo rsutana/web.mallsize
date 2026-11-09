@@ -93,5 +93,6 @@ Smoke-test the build, not the dev server:
 PORT=3100 NUXT_PUBLIC_SANCTUM_BASE_URL=http://localhost:8080 NUXT_SANCTUM_BASE_URL=http://localhost:8080 node .output/server/index.mjs
 ```
 
-`nitro.noExternals: true` is deliberate: nitropack 2.13 + rolldown otherwise emits broken
-pnpm-store import paths (`/consola@…/node_modules/…`) and every SSR request 500s.
+`$production.nitro.noExternals: true` is deliberate: nitropack 2.13 + rolldown otherwise emits broken
+pnpm-store import paths (`/consola@…/node_modules/…`) and every SSR request 500s. Keep it scoped to
+`$production` — in dev it tries to bundle dev-only deps (`my-bad` → `tiny-open`) and `pnpm dev` fails.

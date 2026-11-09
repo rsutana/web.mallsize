@@ -10,6 +10,7 @@ const { report } = useApiError()
 
 const courses = ref<Course[]>([])
 const filters = reactive({ course_id: 'all', batch_id: 'all', payment_status: 'all', q: '' })
+const PER_PAGE = 15
 const page = ref(1)
 const result = ref<Paginated<Enrollment> | null>(null)
 const total = ref(0)
@@ -40,7 +41,7 @@ const statusItems = computed(() => [{ label: 'All', value: 'all' }, ...lookups.i
 let timer: ReturnType<typeof setTimeout> | undefined
 async function load() {
   try {
-    result.value = await api.raw<Paginated<Enrollment>>('/admin/enrollments', { ...query.value, page: page.value, per_page: 50 })
+    result.value = await api.raw<Paginated<Enrollment>>('/admin/enrollments', { ...query.value, page: page.value, per_page: PER_PAGE })
   } catch (e) {
     report(e, 'Couldn’t load students')
   }
@@ -194,16 +195,11 @@ const exportFilteredUrl = computed(() => api.absolute('/admin/enrollments/export
       >
         No students match these filters.
       </p>
-      <div
-        v-if="result && result.meta.last_page > 1"
-        class="flex justify-end px-3.5 py-3"
-      >
-        <UPagination
-          v-model:page="page"
-          :total="result.meta.total"
-          :items-per-page="result.meta.per_page"
-        />
-      </div>
+      <AdminPaginationFooter
+        v-if="result"
+        v-model:page="page"
+        :meta="result.meta"
+      />
     </section>
   </div>
 </template>
